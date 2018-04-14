@@ -8,4 +8,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json.Net20.dll" Version="3.5.0"/>
+  </ItemGroup>
 </Project>
