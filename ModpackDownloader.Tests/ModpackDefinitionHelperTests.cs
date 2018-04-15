@@ -1,20 +1,59 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 
-using ModpackDownloader;
+using Ninject;
+using Ninject.MockingKernel;
+using Ninject.MockingKernel.NSubstitute;
+using NSubstitute;
 using NUnit.Framework;
+
+using ModpackDownloader;
 
 namespace ModpackDownloader.Tests
 {
     [TestFixture]
     public class ModpackDefinitionHelperTests
     {
+        public const string VALID_MODPACK_FILE = "test-files/valid-modpack.zip";
+        public const string MISSING_MANIFEST_MODPACK_FILE = "test-files/missing-manifest-modpack.zip";
+
+
+        private IKernel Kernel
+        {
+            get;
+            set;
+        }
+
+
+        [SetUp]
+        public void SetUp()
+        {
+            Kernel = new MockingKernel();
+            Kernel.Load<NSubstituteModule>();
+        }
+
+
+        [TearDown]
+        public void TearDown()
+        {
+            Kernel.Dispose();
+        }
+
+
         [Test]
         public void When_ZipFileIsValid_Then_ManifestIsExtracted()
         {
-            var helper = new ModpackDefinitionHelper();
-            var manifest = helper.GetManifest("test-files/valid-modpack.zip");
+            var helper = Kernel.Get<ModpackDefinitionHelper>();
+
+            Manifest manifest;
+
+            using(var archive = ZipFile.OpenRead(VALID_MODPACK_FILE))
+            {
+                manifest = helper.GetManifest(archive);
+            }
 
             Assert.That(manifest.Name, Is.EqualTo("ModPackName"));
             Assert.That(manifest.Version, Is.EqualTo("1.0.6"));
@@ -38,11 +77,45 @@ namespace ModpackDownloader.Tests
         [Test]
         public void When_ZipFileIsMissingManifest_Then_ThrowException()
         {
-            var helper = new ModpackDefinitionHelper();
+            var helper = Kernel.Get<ModpackDefinitionHelper>();
+            Exception exception;
 
-            var exception = Assert.Throws<Exception>(()=>helper.GetManifest("test-files/missing-manifest-modpack.zip"));
+             using(var archive = ZipFile.OpenRead(MISSING_MANIFEST_MODPACK_FILE))
+            {
+                exception = Assert.Throws<Exception>(()=>helper.GetManifest(archive));
+            }
 
-            Assert.That(exception.Message, Is.EqualTo("Modpack definition file 'test-files/missing-manifest-modpack.zip' doesn't contain manifest."));
+            Assert.That(exception.Message, Is.EqualTo("Zip archive doesn't contain manifest."));
+        }
+
+
+        [Test]
+        public void When_ZipFileContainsOverrides_Then_OverridesAreApplied()
+        {
+            Kernel.Get<IDirectoryWrapper>().Exists("tmp").Returns(true);
+            
+            var streams = new Dictionary<string, MemoryStream>();
+
+            Kernel.Get<IFileWrapper>().Create(Arg.Any<string>()).Returns((callInfo) =>
+                {
+                    var stream = new MemoryStream();
+                    streams.Add(callInfo.Arg<string>(), stream);
+                    return stream;
+                });
+            
+            var helper = Kernel.Get<ModpackDefinitionHelper>();
+
+            using(var archive = ZipFile.OpenRead(VALID_MODPACK_FILE))
+            {
+                helper.ApplyOverrides(archive, "tmp");
+            }
+
+            var filePaths = new List<string>{"overrides/a.jar","overrides/b.txt"};
+
+            Assert.That(streams.Keys.Count, Is.EqualTo(2));
+            // Are we closing streams?
+            Assert.That(streams.All(x => x.Value.CanRead), Is.False);
+            Assert.That(streams.Keys, Is.EquivalentTo(filePaths));
         }
     }
 }
