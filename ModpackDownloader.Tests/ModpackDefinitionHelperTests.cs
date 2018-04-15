@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 
@@ -31,6 +32,17 @@ namespace ModpackDownloader.Tests
             Assert.That(manifest.Files[1].ProjectId, Is.EqualTo("223794"));
             Assert.That(manifest.Files[1].FileId, Is.EqualTo("2543840"));
             Assert.That(manifest.Files[1].Required, Is.False);
+        }
+
+
+        [Test]
+        public void When_ZipFileIsMissingManifest_Then_ThrowException()
+        {
+            var helper = new ModpackDefinitionHelper();
+
+            var exception = Assert.Throws<Exception>(()=>helper.GetManifest("test-files/missing-manifest-modpack.zip"));
+
+            Assert.That(exception.Message, Is.EqualTo("Modpack definition file 'test-files/missing-manifest-modpack.zip' doesn't contain manifest."));
         }
     }
 }

@@ -18,6 +18,7 @@
 
   <ItemGroup>
   <None Update="test-files/valid-modpack.zip" CopyToOutputDirectory="PreserveNewest" />
+  <None Update="test-files/missing-manifest-modpack.zip" CopyToOutputDirectory="PreserveNewest" />
 </ItemGroup>
 
 </Project>
