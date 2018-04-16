@@ -10,8 +10,6 @@ using Ninject.MockingKernel.NSubstitute;
 using NSubstitute;
 using NUnit.Framework;
 
-using ModpackDownloader;
-
 namespace ModpackDownloader.Tests
 {
     [TestFixture]
@@ -50,7 +48,7 @@ namespace ModpackDownloader.Tests
 
             Manifest manifest;
 
-            using(var archive = ZipFile.OpenRead(VALID_MODPACK_FILE))
+            using (var archive = ZipFile.OpenRead(VALID_MODPACK_FILE))
             {
                 manifest = helper.GetManifest(archive);
             }
@@ -78,11 +76,12 @@ namespace ModpackDownloader.Tests
         public void When_ZipFileIsMissingManifest_Then_ThrowException()
         {
             var helper = Kernel.Get<ModpackDefinitionHelper>();
+
             Exception exception;
 
-             using(var archive = ZipFile.OpenRead(MISSING_MANIFEST_MODPACK_FILE))
+            using (var archive = ZipFile.OpenRead(MISSING_MANIFEST_MODPACK_FILE))
             {
-                exception = Assert.Throws<Exception>(()=>helper.GetManifest(archive));
+                exception = Assert.Throws<Exception>(() => helper.GetManifest(archive));
             }
 
             Assert.That(exception.Message, Is.EqualTo("Zip archive doesn't contain manifest."));
@@ -93,24 +92,29 @@ namespace ModpackDownloader.Tests
         public void When_ZipFileContainsOverrides_Then_OverridesAreApplied()
         {
             Kernel.Get<IDirectoryWrapper>().Exists("tmp").Returns(true);
-            
+
             var streams = new Dictionary<string, MemoryStream>();
 
-            Kernel.Get<IFileWrapper>().Create(Arg.Any<string>()).Returns((callInfo) =>
+            Kernel.Get<IFileWrapper>().Create(Arg.Any<string>()).Returns(
+                (callInfo) =>
                 {
                     var stream = new MemoryStream();
                     streams.Add(callInfo.Arg<string>(), stream);
                     return stream;
                 });
-            
+
             var helper = Kernel.Get<ModpackDefinitionHelper>();
 
-            using(var archive = ZipFile.OpenRead(VALID_MODPACK_FILE))
+            using (var archive = ZipFile.OpenRead(VALID_MODPACK_FILE))
             {
                 helper.ApplyOverrides(archive, "tmp");
             }
 
-            var filePaths = new List<string>{"overrides/a.jar","overrides/b.txt"};
+            var filePaths = new List<string>
+            {
+                Path.Combine ("overrides", "a.jar"),
+                Path.Combine ("overrides", "b.txt")
+            };
 
             Assert.That(streams.Keys.Count, Is.EqualTo(2));
             // Are we closing streams?

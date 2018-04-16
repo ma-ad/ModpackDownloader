@@ -35,7 +35,6 @@ namespace ModpackDownloader
 
 
         public List<ModLoader> ModLoaders { get; set; }
-
     }
 
 
@@ -43,7 +42,7 @@ namespace ModpackDownloader
     {
         public string Id { get; set; }
 
-        
+
         public bool Primary { get; set; }
     }
 
@@ -52,7 +51,9 @@ namespace ModpackDownloader
     {
         public string ProjectId { get; set; }
 
+
         public string FileId { get; set; }
+
 
         public bool Required { get; set; }
     }
