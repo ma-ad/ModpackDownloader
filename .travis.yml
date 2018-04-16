@@ -1,0 +1,15 @@
+language: csharp
+mono: none
+dotnet: 2.0.0
+
+# safelist
+branches:
+  only:
+  - master
+
+install:
+- dotnet restore
+
+script:
+ - dotnet build
+ - dotnet test ModpackDownloader.Tests/ModpackDownloader.Tests.csproj
