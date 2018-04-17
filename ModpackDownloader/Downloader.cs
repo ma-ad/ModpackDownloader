@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace ModpackDownloader
 {
-    class Downloader : IDisposable
+    public class Downloader : IDisposable
     {
         private HttpClient Client
         {
@@ -15,17 +15,28 @@ namespace ModpackDownloader
         }
 
 
-        public Downloader()
+        public Downloader(HttpMessageHandler handler = null)
         {
-            Client = new HttpClient();
+            if (handler != null)
+            {
+                Client = new HttpClient(handler);
+            }
+            else
+            {
+                Client = new HttpClient();
+            }
         }
 
 
-        async Task<Stream> GetFileAsStream(string fileUri)
+        public async Task<Stream> GetFileAsStreamAsync(string fileUri)
         {
             if (string.IsNullOrEmpty(fileUri))
             {
                 throw new ArgumentNullException(nameof(fileUri));
+            }
+            if (!Uri.IsWellFormedUriString(fileUri, UriKind.Absolute))
+            {
+                throw new ArgumentException(nameof(fileUri) + " is not well-formed.");
             }
 
             var result = await Client.GetAsync(fileUri);
