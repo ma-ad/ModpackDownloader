@@ -8,7 +8,7 @@ branches:
   - master
 
 install:
-- dotnet restore
+- dotnet restore --configfile ../NuGet.config
 
 script:
  - dotnet build
