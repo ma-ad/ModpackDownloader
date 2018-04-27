@@ -1,10 +1,10 @@
-﻿using NSubstitute;
-using NUnit.Framework;
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+
+using NUnit.Framework;
 
 namespace ModpackDownloader.Tests
 {
@@ -17,7 +17,7 @@ namespace ModpackDownloader.Tests
             const string nullUri = null;
             using (Downloader downloader = new Downloader())
             {
-                Assert.ThrowsAsync<ArgumentNullException>(() => downloader.GetFileAsStreamAsync(nullUri));
+                Assert.ThrowsAsync<ArgumentNullException>(() => downloader.SaveAsTempFileAsync(nullUri));
             }
         }
 
@@ -28,7 +28,7 @@ namespace ModpackDownloader.Tests
             const string malformedUri = "wwac";
             using (Downloader downloader = new Downloader())
             {
-                Assert.ThrowsAsync<ArgumentException>(() => downloader.GetFileAsStreamAsync(malformedUri));
+                Assert.ThrowsAsync<ArgumentException>(() => downloader.SaveAsTempFileAsync(malformedUri));
             }
         }
 
@@ -39,19 +39,19 @@ namespace ModpackDownloader.Tests
             const string wellFormedUri = "https://something.au";
             var messageHandler = new HttpMessageHandlerSubstitute(
                 new HttpResponseMessage(HttpStatusCode.BadRequest));
-            Stream resultStream;
+            String downloadedFilePath;
 
             using (Downloader downloader = new Downloader(messageHandler))
             {
-                resultStream = await downloader.GetFileAsStreamAsync(wellFormedUri);
+                downloadedFilePath = await downloader.SaveAsTempFileAsync(wellFormedUri);
             }
 
-            Assert.That(resultStream, Is.Null);
+            Assert.That(downloadedFilePath, Is.Null);
         }
 
 
         [Test]
-        public async Task When_ResponseOk_Then_ReturnStream()
+        public async Task When_ResponseOk_Then_ReturnFilePath()
         {
             const string wellFormedUri = "https://something.au";
             const string proposedContent = "testSubject";
@@ -59,19 +59,19 @@ namespace ModpackDownloader.Tests
             var responseMessage = new HttpResponseMessage(HttpStatusCode.Accepted);
             responseMessage.Content = new StringContent(proposedContent);
             var messageHandler = new HttpMessageHandlerSubstitute(responseMessage);
-            Stream resultStream;
+            string downloadedFilePath;
             string actualContent;
 
             using (Downloader downloader = new Downloader(messageHandler))
             {
-                resultStream = await downloader.GetFileAsStreamAsync(wellFormedUri);
-                using (StreamReader reader = new StreamReader(resultStream))
+                downloadedFilePath = await downloader.SaveAsTempFileAsync(wellFormedUri);
+                using (StreamReader reader = new StreamReader(downloadedFilePath))
                 {
                     actualContent = reader.ReadToEnd();
                 }
             }
 
-            Assert.That(resultStream, Is.Not.Null);
+            Assert.That(downloadedFilePath, Is.Not.Null);
             Assert.That(actualContent, Is.EqualTo(proposedContent));
         }
     }

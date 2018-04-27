@@ -10,7 +10,6 @@ namespace ModpackDownloader
         private HttpClient Client
         {
             get;
-
             set;
         }
 
@@ -27,8 +26,12 @@ namespace ModpackDownloader
             }
         }
 
-
-        public async Task<Stream> GetFileAsStreamAsync(string fileUri)
+        /// <summary>
+        /// Downloads file to temporary folder and returns its path.
+        /// </summary>
+        /// <param name="fileUri">Uri of the file to be downloaded.</param>
+        /// <returns>Full file path of the downloaded temp file if successful. Null otherwise.</returns>
+        public async Task<String> SaveAsTempFileAsync(string fileUri)
         {
             if (string.IsNullOrEmpty(fileUri))
             {
@@ -39,14 +42,32 @@ namespace ModpackDownloader
                 throw new ArgumentException(nameof(fileUri) + " is not well-formed.");
             }
 
-            var result = await Client.GetAsync(fileUri);
-            if (!result.IsSuccessStatusCode)
+            string tempFilePath;
+
+            using (HttpResponseMessage response = await Client.GetAsync(fileUri, HttpCompletionOption.ResponseHeadersRead))
             {
-                // TODO add logging
-                return null;
+                if (!response.IsSuccessStatusCode)
+                {
+                    // TODO add logging
+                    return null;
+                }
+                tempFilePath = Path.GetTempFileName();
+                await SaveResponseToFileAsync(response, tempFilePath);
             }
 
-            return await result.Content.ReadAsStreamAsync();
+            return tempFilePath;
+        }
+
+
+        private async Task SaveResponseToFileAsync(HttpResponseMessage response, String path)
+        {
+            using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
+            {
+                using (Stream streamToWriteTo = File.Open(path, FileMode.Create))
+                {
+                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
+                }
+            }
         }
 
 
